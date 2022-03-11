@@ -1,0 +1,16 @@
+Source: noris-csv2graph
+Section: noris-intern/python
+Priority: optional
+Maintainer: Felix Dreissig <felix.dreissig@noris.net>
+Build-Depends: debhelper (>= 7), python3 (>=3.5)
+Standards-Version: 3.8.4
+X-Python-Version: >= 3.5
+Vcs-Git: git.office.noris.de:csv2graph.git
+Vcs-Browser: https://intra.office.noris.de/cgi-bin/gitweb.cgi?p=csv2graph.git
+
+Package: noris-csv2graph
+Architecture: all
+Depends: python3 (>=3.5), python3-matplotlib (>=2.0), python3-numpy (>=1.12)
+Description: Script to generate a PDF graph from a CSV file
+ Python script which reads a CSV file from stdin and converts it to a graph in
+ PDF format, size A4 landscape.

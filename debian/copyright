@@ -1,0 +1,8 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+
+Files: *
+Copyright: 2012-2013 noris network AG:
+                     Felix Dreissig <felix.dreissig@noris.net>
+License: Proprietary
+  This is proprietary software. Any distribution at all is prohibited.
+  All rights reserved. No warranty of any kind whatsoever.

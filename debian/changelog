@@ -1,0 +1,23 @@
+noris-csv2graph (1.3) wheezy; urgency=medium
+
+  * Anpassung fuer GoCD
+
+ -- Klaus Franken <klaus.franken@noris.de>  Fri, 23 Dec 2016 15:35:15 +0100
+
+noris-csv2graph (1.2) wheezy; urgency=low
+
+  * Allow unicode characters in graph titles
+
+ -- Felix Dreißig (noris network AG) <felix.dreissig@noris.net>  Wed, 07 Aug 2013 09:40:47 +0200
+
+noris-csv2graph (1.1) wheezy; urgency=low
+
+  * Support for graph titles
+
+ -- Felix Dreißig (noris network AG) <felix.dreissig@noris.net>  Mon, 05 Aug 2013 10:23:19 +0200
+
+noris-csv2graph (1.0) wheezy; urgency=low
+
+  * Initial release
+
+ -- Felix Dreißig (noris network AG) <felix.dreissig@noris.net>  Tue, 29 Jan 2013 10:25:45 +0100
