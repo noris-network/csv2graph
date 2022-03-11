@@ -10,9 +10,10 @@ resulting graph will represent the time.
 import sys
 import os
 import io
-import getopt
 from datetime import datetime
 import csv
+from typing import List, Optional
+import argparse
 
 # Set backend of matplotlib to a non-graphical one before first importing anything
 # else from it
@@ -29,82 +30,80 @@ from matplotlib.artist import getp
 from matplotlib.dates import date2num
 
 
-def main():
+def main(args: Optional[List[str]] = None):
     """
     Core function which reads the command line arguments and then triggers input
     parsing and plotting.
     """
-    usage = u'Usage: csv2graph [--data-columns] [--smooth] [--stacked] [--dateformat="%Y-%m"] [--title="Title"] ' \
-            u'[--start-at-zero] [--threshold=100] [--emphasize="label"] [--pie-chart]\n' + \
-            u'       csv2graph --help'
 
-    # argparse would fit perfectly here, but we have to be backwards-compatible to
-    # at least Python 2.5
-    # We don't need to do that any more, but we need to be careful when changing
-    # the interface.
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], '', [u'help', u'data-columns', u'smooth', u'stacked', u'dateformat=',
-                                                      u'title=', u'start-at-zero', u'threshold=', u'emphasize=',
-                                                      u'pie-chart'])
-    except getopt.GetoptError as e:
-        print(u'ERROR: %s' % e, file=sys.stderr)
-        print(usage, file=sys.stderr)
-        sys.exit(os.EX_USAGE)
+    args = parse_arguments(args)
 
-    data_in_cols = False
-    smooth_data = False
-    stacked_data = False
-    start_at_zero = False
-    date_fmt = '%Y-%m'
-    threshold = None
-    emphasize = []
-    pie_chart = False
-    title = u''
-
-    for o in opts:
-        if o[0] == u'--help':
-            print(__doc__)
-            print(usage)
-            sys.exit(os.EX_OK)
-        if o[0] == u'--data-columns':
-            data_in_cols = True
-        elif o[0] == u'--smooth':
-            smooth_data = True
-        elif o[0] == u'--stacked':
-            stacked_data = True
-        elif o[0] == u'--start-at-zero':
-            start_at_zero = True
-        elif o[0] == u'--dateformat':
-            date_fmt = o[1]
-        elif o[0] == u'--threshold':
-            threshold = o[1]
-        elif o[0] == u'--emphasize':
-            emphasize.append(o[1])
-        elif o[0] == u'--pie-chart':
-            pie_chart = True
-        if o[0] == u'--title':
-            title = o[1]
-
-    if pie_chart:
-        pie(title)
+    if args.pie_chart:
+        pie(args.title)
         exit(os.EX_OK)
 
-    data_rows, ticks = parse_csv(data_in_cols, date_fmt)
+    data_rows, ticks = parse_csv(args.data_in_cols, args.date_fmt)
 
     x = [data_rows[0][0]]
     # Convert dates to matplotlib format
     x.extend([date2num(val) for val in data_rows[0][1:]])
 
     y = data_rows[1:]
-    if smooth_data:
+    if args.smooth_data:
         y = smoothen_data(y)
 
     # Our approach at stacking graphs is a rather primitive one: We add up each row with
     # previous ones and then fill the area between two graphs using plot(stacked=True)
-    if stacked_data:
+    if args.stacked_data:
         y = stack_data(y)
 
-    plot(x, y, stacked_data, title, start_at_zero, threshold, emphasize, ticks)
+    plot(
+        x,
+        y,
+        args.stacked_data,
+        args.title,
+        args.start_at_zero,
+        args.threshold,
+        args.emphasize,
+        args.ticks,
+    )
+
+
+def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
+    """Parses the command line arguments and stores them in a Namespace
+
+    Args:
+        args: You can store cmdline argument here for testing
+
+    Returns:
+        All arguments in a Namespace
+    """
+
+    parser = argparse.ArgumentParser(
+        description="generate a PDF graph from a CSV file")
+
+    parser.add_argument('--data-columns', action='store_true', dest='data_columns',
+                        help="Data is stored column-wise not row-wise")
+    parser.add_argument('--smooth', action='store_true',
+                        help="?")  # TODO help
+    parser.add_argument('--stacked', action='store_true',
+                        help="?")  # TODO help
+    parser.add_argument('--dateformat', metavar='FORMAT', default='%Y-%m',
+                        help='set format for dates')
+    parser.add_argument('--title', metavar='TITLE', default='',
+                        help='set title')
+    parser.add_argument('--start-at-zero', action='store_true', dest='start_at_zero',
+                        help="?")  # TODO help
+    parser.add_argument('--threshold', type=int, metavar='T', default=None,
+                        help='?')  # TODO help
+    parser.add_argument('--emphasize', nargs='+', metavar='TITLE', default=[],
+                        help='?')  # TODO help
+    parser.add_argument('--pie-chart', action='store_true', dest='pie_chart',
+                        help="?")  # TODO help
+
+    args = parser.parse_args(args)
+
+    return args
 
 
 def parse_csv(data_in_cols=False, date_fmt='%Y-%m'):
