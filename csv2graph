@@ -3,16 +3,16 @@
 """
 Reads a CSV file from stdin and converts it to a graph in PDF format, size A4 landscape.
 The resulting PDF file is then printed to stdout.
-The keys for each dataset have to be date/time values, i.e. the x-axis of the
-resulting graph will represent the time.
+The keys for each dataset have to be date/time values,
+i.e. the x-axis of the resulting graph will represent the time.
 """
+from __future__ import annotations
 
 import sys
-import os
 import io
 from datetime import datetime
 import csv
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import argparse
 
 # Set backend of matplotlib to a non-graphical one before first importing anything
@@ -20,14 +20,19 @@ import argparse
 # https://matplotlib.org/faq/usage_faq.html#what-is-a-backend
 # The current documentation recommends not using `use()` at all. We should fix that at some point.
 import matplotlib
+import numpy as np
 
 matplotlib.use('pdf')
-A4SIZE = (11.69, 8.27)
 
-import numpy
-from matplotlib import pyplot
+import matplotlib.pyplot as plt
 from matplotlib.artist import getp
 from matplotlib.dates import date2num
+
+A4SIZE = (11.69, 8.27)
+
+
+class IllegalInputError(ValueError):
+    pass
 
 
 def main(args: Optional[List[str]] = None):
@@ -38,39 +43,32 @@ def main(args: Optional[List[str]] = None):
 
     args = parse_arguments(args)
 
+    raw_data = list(csv.reader(sys.stdin, dialect=csv.excel, delimiter=','))
+
     if args.pie_chart:
-        pie(args.title)
-        exit(os.EX_OK)
+        init_pie(raw_data, args.title)
 
-    data_rows, ticks = parse_csv(args.data_in_cols, args.date_fmt)
+    else:
+        init_line(
+            raw_data,
+            args.data_in_columns,
+            args.date_format,
+            args.smooth,
+            args.stacked_data,
+            args.title,
+            args.start_at_zero,
+            args.threshold,
+            args.emphasize,
+        )
 
-    x = [data_rows[0][0]]
-    # Convert dates to matplotlib format
-    x.extend([date2num(val) for val in data_rows[0][1:]])
-
-    y = data_rows[1:]
-    if args.smooth_data:
-        y = smoothen_data(y)
-
-    # Our approach at stacking graphs is a rather primitive one: We add up each row with
-    # previous ones and then fill the area between two graphs using plot(stacked=True)
-    if args.stacked_data:
-        y = stack_data(y)
-
-    plot(
-        x,
-        y,
-        args.stacked_data,
-        args.title,
-        args.start_at_zero,
-        args.threshold,
-        args.emphasize,
-        args.ticks,
-    )
+    # Let the result be written to a memory buffer, which is then printed to stdout
+    with io.BytesIO() as out_buf:
+        plt.savefig(out_buf, format='pdf')
+        sys.stdout.buffer.write(out_buf.getvalue())
 
 
 def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
-    """Parses the command line arguments and stores them in a Namespace
+    """Parses the command line arguments and stores them in a Namespace.
 
     Args:
         args: You can store cmdline argument here for testing
@@ -82,86 +80,189 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="generate a PDF graph from a CSV file")
 
-    parser.add_argument('--data-columns', action='store_true', dest='data_columns',
-                        help="Data is stored column-wise not row-wise")
-    parser.add_argument('--smooth', action='store_true',
-                        help="?")  # TODO help
-    parser.add_argument('--stacked', action='store_true',
-                        help="?")  # TODO help
-    parser.add_argument('--dateformat', metavar='FORMAT', default='%Y-%m',
-                        help='set format for dates')
-    parser.add_argument('--title', metavar='TITLE', default='',
+    parser.add_argument('--smooth', '-S', action='store_true',
+                        help="smooth data")
+    parser.add_argument('--stacked', '-s', action='store_true', dest='stacked_data',
+                        help="stacks data on top of each other")
+    parser.add_argument('--start-at-zero', '-z', action='store_true', dest='start_at_zero',
+                        help="force y-axis to start at zero")
+    parser.add_argument('--threshold', '-T', type=float, metavar='T', default=None,
+                        help='print a threshold in the chart')
+    parser.add_argument('--pie-chart', '-p', action='store_true', dest='pie_chart',
+                        help="create a pie chart")
+    parser.add_argument('--data-in-columns', '-c', action='store_true', dest='data_in_columns',
+                        help="data is stored column-wise not row-wise")
+    parser.add_argument('--date-format', '-d', metavar='FORMAT', default='%Y-%m',
+                        dest='date_format', help='set format for dates (default: %%Y-%%m)')
+    parser.add_argument('--title', '-t', metavar='TITLE', default='',
                         help='set title')
-    parser.add_argument('--start-at-zero', action='store_true', dest='start_at_zero',
-                        help="?")  # TODO help
-    parser.add_argument('--threshold', type=int, metavar='T', default=None,
-                        help='?')  # TODO help
-    parser.add_argument('--emphasize', nargs='+', metavar='TITLE', default=[],
-                        help='?')  # TODO help
-    parser.add_argument('--pie-chart', action='store_true', dest='pie_chart',
-                        help="?")  # TODO help
+    parser.add_argument('--emphasize', '-e', nargs='+', metavar='LABEL', default=[],
+                        help='emphasize Label by printing the line wider')
 
     args = parser.parse_args(args)
 
     return args
 
 
-def parse_csv(data_in_cols=False, date_fmt='%Y-%m'):
+def init_pie(data: List[List[str]], title: str):
+    """Create a pie chart
+
+    Args:
+        data: The data
+        title: Title of chart
     """
-    Reads the (CSV) file with the given filename and converts it to a 2-dimensional
-    list structure with correct data types in respect to the given arguments.
+
+    # "unzip" data
+    labels, sizes = zip(*data)
+
+    plt.figure(figsize=A4SIZE)
+
+    plt.pie(sizes, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
+    plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
+    plt.title(title)
+
+
+def init_line(
+        raw_data: List[List[str]],
+        data_in_columns: bool,
+        date_format: str,
+        smooth: bool,
+        stacked_data: bool,
+        title: str,
+        start_at_zero: bool,
+        threshold: Optional[float],
+        emphasize: List[str],
+):
+    """parse data and trigger plotting
+
+    Args:
+        raw_data: unprocessed data
+        data_in_columns: true, if data is stored column-wise instead of row-wise
+        date_format: format for dates
+        smooth: if true, data is smoothed
+        stacked_data: if true, data is stacked
+        title: title of chart
+        start_at_zero: if true, y-axis is forced to start at 0
+        threshold: if not None, print a threshold line
+        emphasize: emphasize these data lines by printing them wider
     """
+    # check size
+    if len(raw_data) < 2:
+        raise IllegalInputError('The input has to have at least 2 rows!')
+    for row in raw_data:
+        if len(row) < 2:
+            raise IllegalInputError('The input has to have at least 2 columns!')
+        if len(row) != len(raw_data[0]):
+            raise IllegalInputError('The size for each row has to be the same!')
+
+    if data_in_columns:
+        # transpose "matrix" (https://stackoverflow.com/questions/4937491)
+        raw_data = list(zip(*raw_data))
+        # convert sets back to lists
+        raw_data = map(list, raw_data)
+
+    x_label = raw_data[0][0]
+    y_labels = [row[0] for row in raw_data[1:]]
+    x, ticks = parse_dates(raw_data[0][1:], date_format)
+    y = parse_data([row[1:] for row in raw_data[1:]], smooth, stacked_data)
+
+    plot_line(
+        x_label,
+        y_labels,
+        x,
+        y,
+        stacked_data,
+        title,
+        start_at_zero,
+        threshold,
+        emphasize,
+        ticks,
+    )
+
+
+def parse_dates(
+        dates: List[str],
+        date_fmt: str
+) -> Tuple[List[np.float64], List[str]]:
+    """Convert the dates to matplotlib readable dates
+
+    Args:
+        dates: the dates in form of strings (can also contain ticks)
+        date_fmt: The date format
+
+    Returns:
+        data_rows: the converted dates
+        ticks: the ticks for x-axis
+    """
+
     ticks = []
-    data_rows = list(csv.reader(sys.stdin, dialect=csv.excel, delimiter=','))
 
     # get explicit labels for x-values if given
-    if ' ' in data_rows[0][1]:
-        for field in range(1, len(data_rows[0][1:]) + 1):
-            label = data_rows[0][field].split(' ', 1)
-            ticks.append(label[1])
-            data_rows[0][field] = label[0]
+    if ' ' in dates[0]:
+        for i, entry in enumerate(dates[:]):
+            label, tick = entry.split(' ', 1)
+            ticks.append(tick)
+            dates[i] = label
 
-    if data_in_cols:
-        data_rows = transpose(data_rows)
+    # Convert top row to Python datetime format and then to matplotlib format
+    dates = [date2num(datetime.strptime(date, date_fmt)) for date in dates]
 
-    if len(data_rows) < 2 or len(data_rows[0]) < 2:
-        error_exit(u'The input has to have at least 2 columns and 2 rows!', os.EX_DATAERR)
-
-    try:
-        # Convert columns 1-n of the dates (i.e. the top row) to Python datetime format
-        data_rows[0][1:] = [datetime.strptime(val, date_fmt) for val in data_rows[0][1:]]
-        # Really dirty hack for supporting an alternative datetime format
-    except ValueError:
-        try:
-            data_rows[0][1:] = [datetime.strptime(val, "%Y-%m-%d") for val in data_rows[0][1:]]
-        except ValueError as e:
-            error_exit(e, os.EX_DATAERR)
-
-    try:
-        # Convert columns 1-n of the data (i.e. everything below the top row) to numbers
-        for i in range(1, len(data_rows)):
-            data_rows[i][1:] = [float(val) if val != u'' else 0 for val in data_rows[i][1:]]
-    except ValueError as e:
-        error_exit(e, os.EX_DATAERR)
-
-    return data_rows, ticks
+    return dates, ticks
 
 
-def transpose(data_rows):
-    # Transpose the input "matrix", see http://stackoverflow.com/questions/4937491/
-    data_rows = list(zip(*data_rows))
-    # Convert the tuples from zip() back to lists
-    for i, row in enumerate(data_rows):
-        data_rows[i] = list(row)
-    return data_rows
+def parse_data(
+        data: List[List[str]],
+        smooth: bool,
+        stacked_data: bool,
+) -> List[List[float]]:
+    """Convert data to numbers.
 
+    Args:
+        data: The data in a 2d-List
+        smooth: if true, smooth data
+        stacked_data: if true, add up data values
 
-def smoothen_data(rows, degree=4):
+    Returns:
+        The parsed numbers
     """
-    Performs linear data smoothing on the values of each row using a Gaussian algorithm.
+    """
+    # convert data from str to float
+    for i in range(len(data)):
+        for j in range(len(data[i])):
+            data[i][j] = float(data[i][j]) if data[i][j] else 0.0
+            """
+    data = [list(map(float, row)) for row in data]
+
+    if smooth:
+        data = smooth_data(data)
+
+    if stacked_data:
+        # add up data
+        for i in range(1, len(data)):
+            for j in range(len(data[i])):
+                data[i][j] += data[i - 1][j]
+
+    return data
+
+
+def smooth_data(
+        rows: List[List[float]],
+        degree: int = 4,
+) -> List[List[float]]:
+    """Performs linear data smoothing on the values of each row using a Gaussian algorithm.
 
     Heavily inspired by Scott W. Harden's smoothListGaussian():
-    http://www.swharden.com/blog/2008-11-17-linear-data-smoothing-in-python/
+    https://www.swharden.com/blog/2008-11-17-linear-data-smoothing-in-python/
+
+    TODO replace by modern filter
+
+    Args:
+        rows: Data
+        degree: ?
+
+    Returns:
+        smoothed data
     """
     for i, complete_row in enumerate(rows):
         row = complete_row[1:]
@@ -171,130 +272,98 @@ def smoothen_data(rows, degree=4):
         row = [row[0]] * (degree - 1) + row + [row[-1]] * degree
 
         window = degree * 2 - 1
-        weight = numpy.array([1.0] * window)
+        weight = np.array([1.0] * window)
         weight_gauss = []
 
         for j in range(window):
             j = j - degree + 1
             frac = j / float(window)
-            gauss = 1 / (numpy.exp((4 * frac) ** 2))
+            gauss = 1 / (np.exp((4 * frac) ** 2))
             weight_gauss.append(gauss)
-        weight = numpy.array(weight_gauss) * weight
+        weight = np.array(weight_gauss) * weight
 
         smoothed = [0.0] * (len(row) - window)
 
         for j in range(len(smoothed)):
-            smoothed[j] = sum(numpy.array(row[j:j + window]) * weight) / sum(weight)
+            smoothed[j] = sum(np.array(row[j:j + window]) * weight) / sum(weight)
 
         rows[i] = [complete_row[0]] + smoothed
 
     return rows
 
 
-def stack_data(rows):
-    """
-    Sums up each value of all rows with the corresponding values from previous rows.
-    """
-    # The first row can stay as it is
-    for i in range(1, len(rows)):
-        for j in range(1, len(rows[i])):
-            try:
-                rows[i][j] += rows[i - 1][j]
-            except IndexError:
-                error_exit(u'All rows must contain the same number of columns!', os.EX_DATAERR)
+def plot_line(
+        x_label: str,
+        y_labels: List[str],
+        x: List[np.float64],
+        y: List[List[float]],
+        stacked: bool,
+        title: str,
+        start_at_zero: bool,
+        threshold: Optional[float],
+        emphasize: List[str],
+        ticks: List[str],
+) -> None:
+    """Plot the data.
 
-    return rows
-
-
-def plot(x, y, stacked=False, title=u'', start_at_zero=False, threshold=None, emphasize=None, ticks=None):
-    """
-    Plots each row of y values using the dates values from x. The output is a PDF file,
-    which is printed to stdout. The first element of each row is used as description
-    for the legend.
+    Plots each row of y values using the dates values from x.
+    The output is a PDF file, which is printed to stdout.
+    The first element of each row is used as description for the legend.
     If 'stacked' is set to 'True', the area between the single graphs will be filled out.
+
+    Args:
+        x_label: descriptive label for x-axis
+        y_labels: descriptive label for data
+        x: Timestamps of data-points
+        y: data-points
+        stacked: true, if data is stacked
+        title: title of the chart
+        start_at_zero: if true, y-axis is forced to start at zero
+        threshold: if not None, print a threshold line at its value
+        emphasize: print the line according to this data wider
+        ticks: ticks for x-axis
     """
-    if emphasize is None:
-        emphasize = []
-    if ticks is None:
-        ticks = []
     # Set output size to A4
-    pyplot.figure(figsize=A4SIZE)
+    plt.figure(figsize=A4SIZE)
 
     for i, dataset in enumerate(y):
-        if len(x) != len(dataset):
-            error_exit(u'All rows must contain the same number of columns!')
+        label = y_labels[i]
+        width = 5 if label in emphasize else 1.5
 
-        width = 1.5
-        if dataset[0] in emphasize:
-            width = 5
         # plot() returns a list of lines, we unpack the first element by using ','
-        line, = pyplot.plot(x[1:], dataset[1:], label=dataset[0], lw=width)
+        line, = plt.plot(x, dataset, label=label, lw=width)
 
         if stacked:
             if i == 0:
-                pyplot.fill_between(x[1:], dataset[1:], 0, color=getp(line, 'color'))
+                plt.fill_between(x, dataset, 0, color=getp(line, 'color'))
             else:
-                pyplot.fill_between(x[1:], dataset[1:], y[i - 1][1:], color=getp(line, 'color'))
+                plt.fill_between(x, dataset, y[i - 1], color=getp(line, 'color'))
 
     # plot a horizontal Line if requested
     if threshold:
-        pyplot.axhline(y=float(threshold), color='r', linestyle='-')
+        plt.axhline(y=threshold, color='r', linestyle='-')
 
-    pyplot.title(title)
+    plt.title(title)
     # plot_date() for whatever reason didn't automatically use appropriate line styles
     # and colors, so we did a normal plot() and now call xaxis_date() by hand
-    pyplot.gca().xaxis_date()
+    plt.gca().xaxis_date()
 
     # set labels for x-values if given
     if ticks:
-        pyplot.xticks(x[1:], ticks)
+        plt.xticks(x, ticks)
 
     # Make the drawing area only as big as the plotted data requires
-    pyplot.axis('tight')
+    plt.axis('tight')
     # Start drawing area at zero if requested
     if start_at_zero:
-        # pyplot.axis() returns a tuple, but we can´t manipulate a tuple...
-        ax = list(pyplot.axis())
+        # plt.axis() returns a tuple, but we can´t manipulate a tuple...
+        ax = list(plt.axis())
         ax[2] = -0
-        pyplot.axis(tuple(ax))
+        plt.axis(tuple(ax))
     # Rotate the x-axis label so that they won't overlap each other
-    pyplot.gcf().autofmt_xdate()
+    plt.gcf().autofmt_xdate()
     # Add a legend at the best possible location with a font size of 11
-    pyplot.legend(loc=0, title=x[0], prop={'size': 'small'})
-
-    # Let the result be written to a memory buffer, which is then printed to stdout
-    with io.BytesIO() as out_buf:
-        pyplot.savefig(out_buf, format='pdf')
-        sys.stdout.buffer.write(out_buf.getvalue())
-
-
-def pie(title):
-    csv_reader = csv.reader(sys.stdin, dialect=csv.excel, delimiter=',')
-    labels = []
-    sizes = []
-    for row in csv_reader:
-        labels.append(row[0])
-        sizes.append(row[1])
-
-    pyplot.figure(figsize=A4SIZE)
-
-    pyplot.pie(sizes, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
-    pyplot.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-
-    pyplot.title(title)
-
-    with io.BytesIO() as out_buf:
-        pyplot.savefig(out_buf, format='pdf')
-        sys.stdout.buffer.write(out_buf.getvalue())
-
-
-def error_exit(text, status=1):
-    """
-    Helper function which prints an error message to stderr and then exits the program
-    with the given status.
-    """
-    print(u'ERROR: %s' % text, file=sys.stderr)
-    sys.exit(status)
+    plt.legend(loc=0, title=x_label, prop={'size': 'small'})
 
 
 # Program body
