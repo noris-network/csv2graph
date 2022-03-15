@@ -13,6 +13,7 @@ from datetime import datetime
 import csv
 from typing import List, Optional, Tuple
 import argparse
+from scipy.signal import savgol_filter
 
 # Set backend of matplotlib to a non-graphical one before first importing anything
 # else from it
@@ -234,12 +235,8 @@ def parse_data(
     Returns:
         The parsed numbers
     """
-    """
+
     # convert data from str to float
-    for i in range(len(data)):
-        for j in range(len(data[i])):
-            data[i][j] = float(data[i][j]) if data[i][j] else 0.0
-            """
     data = [list(map(float, row)) for row in data]
 
     if smooth:
@@ -254,48 +251,23 @@ def parse_data(
     return data
 
 
-def smooth_data(
-        rows: List[List[float]],
-        degree: int = 4,
-) -> List[List[float]]:
-    """Performs linear data smoothing on the values of each row using a Gaussian algorithm.
+def smooth_data(rows: List[List[float]], window_length: int = None) -> List[List[float]]:
+    """smooth out data using a savgol filter
 
-    Heavily inspired by Scott W. Harden's smoothListGaussian():
-    https://www.swharden.com/blog/2008-11-17-linear-data-smoothing-in-python/
-
-    TODO replace by modern filter
+    https://stackoverflow.com/a/63511395
 
     Args:
-        rows: Data
-        degree: ?
+        rows: Data in 2d list
+        window_length: window_length for savgol_filter
 
     Returns:
         smoothed data
     """
-    for i, complete_row in enumerate(rows):
-        row = complete_row[1:]
+    if not window_length:
+        window_length = len(rows[0]) // 2 - 1
 
-        # Fix a padding/buffer issue, see
-        # http://www.swharden.com/blog/2008-11-17-linear-data-smoothing-in-python/#comment-9680
-        row = [row[0]] * (degree - 1) + row + [row[-1]] * degree
-
-        window = degree * 2 - 1
-        weight = np.array([1.0] * window)
-        weight_gauss = []
-
-        for j in range(window):
-            j = j - degree + 1
-            frac = j / float(window)
-            gauss = 1 / (np.exp((4 * frac) ** 2))
-            weight_gauss.append(gauss)
-        weight = np.array(weight_gauss) * weight
-
-        smoothed = [0.0] * (len(row) - window)
-
-        for j in range(len(smoothed)):
-            smoothed[j] = sum(np.array(row[j:j + window]) * weight) / sum(weight)
-
-        rows[i] = [complete_row[0]] + smoothed
+    for i in range(len(rows)):
+        rows[i] = savgol_filter(rows[i], window_length, 2)
 
     return rows
 
