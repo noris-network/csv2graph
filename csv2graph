@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # Written by Felix Dreissig (noris network AG) in July 2012.
+# Rewritten by Tobias Kaiser (noris network AG) in March 2022.
 """
 Reads a CSV file from stdin and converts it to a graph in PDF format, size A4 landscape.
 The resulting PDF file is then printed to stdout.
@@ -9,25 +10,24 @@ i.e. the x-axis of the resulting graph will represent the time.
 from __future__ import annotations
 
 import sys
-from datetime import datetime
 import csv
-from typing import List, Optional, Tuple
 import argparse
-from scipy.signal import savgol_filter
-
-# Set backend of matplotlib to a non-graphical one before first importing anything
-# else from it
-# https://matplotlib.org/faq/usage_faq.html#what-is-a-backend
-# The current documentation recommends not using `use()` at all. We should fix that at some point.
-#
-import matplotlib
+from datetime import datetime
+from typing import List, Optional, Tuple
 import numpy as np
-
-matplotlib.use('pdf')
-
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.artist import getp
 from matplotlib.dates import date2num
+from scipy.signal import savgol_filter
+
+# Set backend of matplotlib to a non-graphical one
+# old doc: https://matplotlib.org/faq/usage_faq.html#what-is-a-backend
+# new doc: https://matplotlib.org/stable/users/explain/backends.html
+# The current documentation recommends not using `use()` at all,
+# because you have to edit this code when caning the backend
+# Since we don't need a backend change, we can keep it as it is.
+matplotlib.use('pdf')
 
 A4SIZE = (11.69, 8.27)
 
