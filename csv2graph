@@ -9,7 +9,6 @@ i.e. the x-axis of the resulting graph will represent the time.
 from __future__ import annotations
 
 import sys
-import io
 from datetime import datetime
 import csv
 from typing import List, Optional, Tuple
@@ -19,6 +18,7 @@ import argparse
 # else from it
 # https://matplotlib.org/faq/usage_faq.html#what-is-a-backend
 # The current documentation recommends not using `use()` at all. We should fix that at some point.
+#
 import matplotlib
 import numpy as np
 
@@ -43,7 +43,11 @@ def main(args: Optional[List[str]] = None):
 
     args = parse_arguments(args)
 
-    raw_data = list(csv.reader(sys.stdin, dialect=csv.excel, delimiter=','))
+    if args.input:
+        with open(args.input) as csvfile:
+            raw_data = list(csv.reader(csvfile, dialect=csv.excel, delimiter=','))
+    else:
+        raw_data = list(csv.reader(sys.stdin, dialect=csv.excel, delimiter=','))
 
     if args.pie_chart:
         init_pie(raw_data, args.title)
@@ -61,10 +65,10 @@ def main(args: Optional[List[str]] = None):
             args.emphasize,
         )
 
-    # Let the result be written to a memory buffer, which is then printed to stdout
-    with io.BytesIO() as out_buf:
-        plt.savefig(out_buf, format='pdf')
-        sys.stdout.buffer.write(out_buf.getvalue())
+    if args.output:
+        plt.savefig(args.output)
+    else:
+        plt.savefig(sys.stdout.buffer)
 
 
 def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
@@ -90,6 +94,10 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
                         help='print a threshold in the chart')
     parser.add_argument('--pie-chart', '-p', action='store_true', dest='pie_chart',
                         help="create a pie chart")
+    parser.add_argument('--input', '-i', metavar='FILE', default=None,
+                        help='read data from this file instead of stdin')
+    parser.add_argument('--output', '-o', metavar='FILE', default=None,
+                        help='print chart to this file instead of stdout')
     parser.add_argument('--data-in-columns', '-c', action='store_true', dest='data_in_columns',
                         help="data is stored column-wise not row-wise")
     parser.add_argument('--date-format', '-d', metavar='FORMAT', default='%Y-%m',
