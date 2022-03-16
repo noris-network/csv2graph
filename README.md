@@ -26,9 +26,8 @@ pip install -r requirements.txt
 ## Usage & Options
 ```
 usage line: csv2graph [-h] [--smooth] [--stacked] [--start-at-zero] [--threshold T]
-                      [--pie-chart] [--input FILE] [--output FILE]
-                      [--data-in-columns] [--date-format FORMAT] [--title TITLE]
-                      [--emphasize LABEL [LABEL ...]]
+                      [--input FILE] [--output FILE] [--emphasize LABEL [LABEL ...]]
+                      [--date-format FORMAT] [--title TITLE] [--data-in-columns]
 ```
 ```
 usage pie: csv2graph --pie-chart [-h] [--input FILE] [--output FILE]
