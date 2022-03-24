@@ -52,9 +52,9 @@ def main(args: Optional[List[str]] = None):
 
     if args.data_in_columns:
         # transpose "matrix" (https://stackoverflow.com/questions/4937491)
-        raw_data = list(zip(*raw_data))
+        raw_data = zip(*raw_data)
         # convert sets back to lists
-        raw_data = map(list, raw_data)
+        raw_data = list(map(list, raw_data))
 
     if args.pie_chart:
         init_pie(raw_data, args.title)
