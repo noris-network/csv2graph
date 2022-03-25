@@ -4,7 +4,7 @@ It hast two modes:
 1. line graph (default)
 2. pie chart
 
-By default, the input is read from stdin and printed to stdout.
+By default, the input is read from stdin and printed to stdout.  
 You can also specify files with the `--input` and `-- output` option.
 
 ## line graph
@@ -17,7 +17,7 @@ according to the format specified in `--date-format` option (default: `%Y-%m`).
 Generate a pie chart from the data.
 
 ## installation
-You need to install these required packages: numpy, scipy, matplotlib
+You need to install these required packages: numpy, scipy, matplotlib  
 Or use the requirements.txt file:
 ```
 pip install -r requirements.txt
