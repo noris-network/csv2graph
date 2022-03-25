@@ -23,7 +23,7 @@ Or use the requirements.txt file:
 pip install -r requirements.txt
 ```
 
-## Usage & Options
+## usage & options
 ```
 usage line: csv2graph [-h] [--smooth] [--stacked] [--start-at-zero] [--threshold T]
                       [--input FILE] [--output FILE] [--emphasize LABEL [LABEL ...]]
@@ -55,7 +55,7 @@ optional arguments:
                         emphasize Label by printing the line wider
 ```
 
-## Examples
+## examples
 
 ### line
 input-file:
