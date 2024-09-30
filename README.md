@@ -52,6 +52,8 @@ optional arguments:
                         data is stored column-wise not row-wise
   --date-format FORMAT, -d FORMAT
                         set format for dates (default: %Y-%m)
+  --x-label-separator SEPARATOR, --separator SEPARATOR
+                        set separator between date and label
   --title TITLE, -t TITLE
                         set title
   --emphasize LABEL [LABEL ...], -e LABEL [LABEL ...]
