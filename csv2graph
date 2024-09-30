@@ -63,6 +63,7 @@ def main(args: Optional[List[str]] = None):
         init_line(
             raw_data,
             args.date_format,
+            args.separator,
             args.smooth,
             args.stacked_data,
             args.title,
@@ -108,6 +109,9 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
                         help="data is stored column-wise not row-wise")
     parser.add_argument('--date-format', '-d', metavar='FORMAT', default='%Y-%m',
                         dest='date_format', help='set format for dates (default: %%Y-%%m)')
+    parser.add_argument('--x-label-separator', '--separator', metavar='SEPARATOR',
+                        default=None, dest='separator',
+                        help='set separator between date and label')
     parser.add_argument('--title', '-t', metavar='TITLE', default='',
                         help='set title')
     parser.add_argument('--emphasize', '-e', nargs='+', metavar='LABEL', default=[],
@@ -140,6 +144,7 @@ def init_pie(data: List[List[str]], title: str):
 def init_line(
         raw_data: List[List[str]],
         date_format: str,
+        separator: str,
         smooth: bool,
         stacked_data: bool,
         title: str,
@@ -152,6 +157,7 @@ def init_line(
     Args:
         raw_data: unprocessed data
         date_format: format for dates
+        separator: separator between date and label
         smooth: if true, data is smoothed
         stacked_data: if true, data is stacked
         title: title of chart
@@ -170,7 +176,7 @@ def init_line(
 
     x_label = raw_data[0][0]
     y_labels = [row[0] for row in raw_data[1:]]
-    x, ticks = parse_dates(raw_data[0][1:], date_format)
+    x, ticks = parse_dates(raw_data[0][1:], date_format, separator)
     y = parse_data([row[1:] for row in raw_data[1:]], smooth, stacked_data)
 
     plot_line(
@@ -189,13 +195,15 @@ def init_line(
 
 def parse_dates(
         dates: List[str],
-        date_fmt: str
+        date_fmt: str,
+        separator: str,
 ) -> Tuple[List[np.float64], List[str]]:
     """Convert the dates to matplotlib readable dates
 
     Args:
         dates: the dates in form of strings (can also contain ticks)
         date_fmt: The date format
+        separator: separator between date and label
 
     Returns:
         data_rows: the converted dates
@@ -205,14 +213,33 @@ def parse_dates(
     ticks = []
 
     # get explicit labels for x-values if given
-    if ' ' in dates[0]:
+    if separator:
         for i, entry in enumerate(dates[:]):
-            label, tick = entry.split(' ', 1)
-            ticks.append(tick)
-            dates[i] = label
+            # find first position where splitting does not produce an error from parsing the date
+            date = None
+            tick = None
+            index = entry.find(separator)
+            while index != -1:
+                try:
+                    date = entry[:index]
+                    date = datetime.strptime(date, date_fmt)
+                    tick = entry[index + len(separator):]
+                    break
+                except ValueError:
+                    pass
+                index = entry.find(separator, index + 1)
 
-    # Convert top row to Python datetime format and then to matplotlib format
-    dates = [date2num(datetime.strptime(date, date_fmt)) for date in dates]
+            if ticks is None:
+                raise ValueError(
+                    f"cell '{entry}' can't be split in date and label "
+                    f"with separator '{separator}'"
+                )
+
+            ticks.append(tick)
+            dates[i] = date2num(date)
+    else:
+        # Convert top row to Python datetime format and then to matplotlib format
+        dates = [date2num(datetime.strptime(date, date_fmt)) for date in dates]
 
     return dates, ticks
 

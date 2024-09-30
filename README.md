@@ -12,6 +12,9 @@ Generate a line graph from the data.
 The first value of each line is used as a descriptive Label for the following data.
 The first line must consist of dates 
 according to the format specified in `--date-format` option (default: `%Y-%m`).
+The dates can contain a label.
+You can state the separator between the date and the label via `--x-label-separator`.
+The date can contain the seperator. The skript fill find the right spot to split.
 
 ## pie chart
 Generate a pie chart from the data.
@@ -76,6 +79,20 @@ Command:
 ./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line-stacked.pdf --date-format "%Y-%m" --stacked --smooth
 ```
 ![line chart stacked](examples/line-stacked.png)
+
+### line with labels
+input-file:
+```csv
+month,2019-12-dec,2020-01-jan,2020-02-feb,2020-03-mar,2020-04-apr,2020-05-may,2020-06-jun,2020-07-jul,2020-08-aug,2020-09-sep,2020-10-oct,2020-11-nov
+"own issues",48,40,68,67,47,29,51,49,55,46,100,93
+"foreign issues",15,18,17,23,13,11,38,30,11,5,27,18
+other,109,113,124,178,209,139,142,135,148,160,150,148
+```
+Command: 
+```shell
+./csv2graph --title "Issues per Month" -i examples/line_with_label.csv -o examples/line_with_label.pdf --date-format "%Y-%m" --x-label-separator "-"
+```
+![line chart with label](examples/line_with_label.png) 
 
 ### pie
 input-file:
