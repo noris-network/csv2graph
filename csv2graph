@@ -12,8 +12,11 @@ from __future__ import annotations
 import sys
 import csv
 import argparse
+from textwrap import TextWrapper
 from datetime import datetime
+from itertools import cycle
 from typing import List, Optional, Tuple
+
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
@@ -56,10 +59,21 @@ def main(args: Optional[List[str]] = None):
         # convert sets back to lists
         raw_data = list(map(list, raw_data))
 
+    plt.figure(figsize=A4SIZE)
+
     if args.pie_chart:
         init_pie(raw_data, args.title)
 
     else:
+        annotation_data = None
+        if args.annotation:
+            with open(args.annotation) as csvfile:
+                annotation_data = list(csv.reader(csvfile, dialect=csv.excel, delimiter=','))
+            if not args.data_in_columns:
+                # I need the annotation data opposite of the data, which should be drawn
+                # transpose "matrix" (https://stackoverflow.com/questions/4937491)
+                annotation_data = list(map(list, zip(*annotation_data)))
+
         init_line(
             raw_data,
             args.date_format,
@@ -70,6 +84,7 @@ def main(args: Optional[List[str]] = None):
             args.start_at_zero,
             args.threshold,
             args.emphasize,
+            annotation_data,
         )
 
     if args.output:
@@ -95,17 +110,19 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
                         help="smooth data")
     parser.add_argument('--stacked', '-s', action='store_true', dest='stacked_data',
                         help="stacks data on top of each other")
-    parser.add_argument('--start-at-zero', '-z', action='store_true', dest='start_at_zero',
+    parser.add_argument('--start-at-zero', '-z', action='store_true',
+                        dest='start_at_zero',
                         help="force y-axis to start at zero")
     parser.add_argument('--threshold', '-T', type=float, metavar='T', default=None,
                         help='print a threshold in the chart')
     parser.add_argument('--pie-chart', '-p', action='store_true', dest='pie_chart',
-                        help="create a pie chart")
+                        help="create a pie chart instead of line graph")
     parser.add_argument('--input', '-i', metavar='FILE', default=None,
                         help='read data from this file instead of stdin')
     parser.add_argument('--output', '-o', metavar='FILE', default=None,
                         help='print chart to this file instead of stdout')
-    parser.add_argument('--data-in-columns', '-c', action='store_true', dest='data_in_columns',
+    parser.add_argument('--data-in-columns', '-c', action='store_true',
+                        dest='data_in_columns',
                         help="data is stored column-wise not row-wise")
     parser.add_argument('--date-format', '-d', metavar='FORMAT', default='%Y-%m',
                         dest='date_format', help='set format for dates (default: %%Y-%%m)')
@@ -116,6 +133,8 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
                         help='set title')
     parser.add_argument('--emphasize', '-e', nargs='+', metavar='LABEL', default=[],
                         help='emphasize Label by printing the line wider')
+    parser.add_argument('--annotation', '-a', metavar='FILE', default=None,
+                        help='add annotations from file FILE')
 
     args = parser.parse_args(args)
 
@@ -133,8 +152,6 @@ def init_pie(data: List[List[str]], title: str):
     # "unzip" data
     labels, sizes = zip(*data)
 
-    plt.figure(figsize=A4SIZE)
-
     plt.pie(sizes, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
     plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
 
@@ -151,6 +168,7 @@ def init_line(
         start_at_zero: bool,
         threshold: Optional[float],
         emphasize: List[str],
+        annotation_data: List[List[str]] | None,
 ):
     """parse data and trigger plotting
 
@@ -164,6 +182,7 @@ def init_line(
         start_at_zero: if true, y-axis is forced to start at 0
         threshold: if not None, print a threshold line
         emphasize: emphasize these data lines by printing them wider
+        annotation_data: annotations
     """
     # check size
     if len(raw_data) < 2:
@@ -190,6 +209,8 @@ def init_line(
         threshold,
         emphasize,
         ticks,
+        date_format,
+        annotation_data,
     )
 
 
@@ -296,6 +317,39 @@ def smooth_data(rows: List[List[float]], window_length: int = None) -> List[List
     return rows
 
 
+def render_annotations(annotation_data: List[List[str]], date_format: str) -> None:
+    """Render annotations"""
+    ax = plt.gca()
+    color_iter = cycle(['red', 'blue', 'green', 'magenta'])
+    y = plt.ylim()[1]
+    wrapper = TextWrapper(width=33, replace_whitespace=False)
+    for row in annotation_data:
+        if len(row) == 2:
+            date, text = row
+            offset = 0
+        else:
+            date, text, offset = row
+            try:
+                offset = float(offset)
+            except ValueError:
+                offset = 0
+        x = date2num(datetime.strptime(date, date_format))
+        color = next(color_iter)
+        ax.axvline(x=x, color=color, linestyle='--')
+        text = wrapper.fill(text)
+        ax.text(
+            x + offset,
+            y,
+            text,
+            color=color,
+            ha='left',
+            fontsize=10,
+            rotation=10,
+            ma='left',
+        )
+
+    plt.tight_layout()
+
 def plot_line(
         x_label: str,
         y_labels: List[str],
@@ -307,6 +361,8 @@ def plot_line(
         threshold: Optional[float],
         emphasize: List[str],
         ticks: List[str],
+        date_format: str,
+        annotation_data: List[List[str]] | None,
 ) -> None:
     """Plot the data.
 
@@ -326,9 +382,9 @@ def plot_line(
         threshold: if not None, print a threshold line at its value
         emphasize: print the line according to this data wider
         ticks: ticks for x-axis
+        date_format: format for dates
+        annotation_data: annotations
     """
-    # Set output size to A4
-    plt.figure(figsize=A4SIZE)
 
     for i, dataset in enumerate(y):
         label = y_labels[i]
@@ -347,7 +403,7 @@ def plot_line(
     if threshold:
         plt.axhline(y=threshold, color='r', linestyle='-')
 
-    plt.title(title)
+    plt.title(title, pad=70)
     # plot_date() for whatever reason didn't automatically use appropriate line styles
     # and colors, so we did a normal plot() and now call xaxis_date() by hand
     plt.gca().xaxis_date()
@@ -368,6 +424,9 @@ def plot_line(
     plt.gcf().autofmt_xdate()
     # Add a legend at the best possible location with a font size of 11
     plt.legend(loc=0, title=x_label, prop={'size': 'small'})
+
+    if annotation_data:
+        render_annotations(annotation_data, date_format)
 
 
 # Program body
