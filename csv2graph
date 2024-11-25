@@ -322,7 +322,7 @@ def render_annotations(annotation_data: List[List[str]], date_format: str) -> No
     ax = plt.gca()
     color_iter = cycle(['red', 'blue', 'green', 'magenta'])
     y = plt.ylim()[1]
-    wrapper = TextWrapper(width=33, replace_whitespace=False)
+    wrapper = TextWrapper(width=45, replace_whitespace=False)
     for row in annotation_data:
         if len(row) == 2:
             date, text = row
