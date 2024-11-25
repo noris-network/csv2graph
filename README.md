@@ -187,9 +187,10 @@ Command:
 
 If your text overlaps, you can define an offset.
 
-The offset applies in x direction in the scale of the date.
+The first offset applies in x direction in the scale of the date.
 (The dates are converted to a float representing dates in the unix epoche, 
 [see matplotlib.date2num](https://matplotlib.org/stable/api/dates_api.html#matplotlib.dates.date2num)).
+The second offset applies in y direction in the scale of the data.
 
 annotations_overlap.csv:
 ```csv
@@ -205,10 +206,11 @@ Command:
 
 annotations_offset.csv:
 ```csv
-2020-02,2020-03,2020-09,
-"release AI feature","This text
-will overlap","remove AI feature"
--15,,
+2020-02,2020-03,2020-05,2020-07,2020-09
+"release AI feature (offset x and y)","This text
+will overlap","offset x","offset y","remove AI feature"
+-20,,10,,
+5,,,20,
 ```
 Command: 
 ```shell
