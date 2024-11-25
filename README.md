@@ -40,7 +40,7 @@ usage line: csv2graph [-h] [--input FILE] [--output FILE]
                       [--start-at-zero] [--threshold T] [--smooth] [--stacked] 
                       [--data-in-columns] [--title TITLE] [--emphasize LABEL [LABEL ...]]
                       [--date-format FORMAT] [--x-label-separator SEPARATOR]
-                      [--annotation FILE]
+                      [--annotations FILE]
 ```
 ```
 usage pie: csv2graph --pie-chart [-h] [--input FILE] [--output FILE]
@@ -68,7 +68,7 @@ optional arguments:
                         set title
   --emphasize LABEL [LABEL ...], -e LABEL [LABEL ...]
                         emphasize Label by printing the line wider
-  --annotation FILE
+  --annotations FILE
                         add annotations from file FILE
 ```
 
@@ -164,7 +164,7 @@ annotations.csv:
 
 Command: 
 ```shell
-./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations.pdf --date-format "%Y-%m" --annotation examples/annotations.csv
+./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations.pdf --date-format "%Y-%m" --annotations examples/annotations.csv
 ```
 ![line chart with annotations](examples/line_annotations.png)
 
@@ -179,7 +179,7 @@ annotations_columns.csv:
 ```
 Command: 
 ```shell
-./csv2graph --title "Issues per Month" --data-in-columns -i examples/line_columns.csv -o examples/line_annotations_columns.pdf --date-format "%Y-%m" --annotation examples/annotations_columns.csv
+./csv2graph --title "Issues per Month" --data-in-columns -i examples/line_columns.csv -o examples/line_annotations_columns.pdf --date-format "%Y-%m" --annotations examples/annotations_columns.csv
 ```
 ![line chart with annotations data in columns](examples/line_annotations_columns.png)
 
@@ -199,7 +199,7 @@ will overlap","remove AI feature"
 ```
 Command: 
 ```shell
-./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations_overlap.pdf --date-format "%Y-%m" --annotation examples/annotations_overlap.csv
+./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations_overlap.pdf --date-format "%Y-%m" --annotations examples/annotations_overlap.csv
 ```
 ![line chart overlapping annotations](examples/line_annotations_overlap.png)
 
@@ -212,7 +212,7 @@ will overlap","remove AI feature"
 ```
 Command: 
 ```shell
-./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations_offset.pdf --date-format "%Y-%m" --annotation examples/annotations_offset.csv
+./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations_offset.pdf --date-format "%Y-%m" --annotations examples/annotations_offset.csv
 ```
 ![line chart fixed overlapping annotations](examples/line_annotations_offset.png)
 

@@ -66,8 +66,8 @@ def main(args: Optional[List[str]] = None):
 
     else:
         annotation_data = None
-        if args.annotation:
-            with open(args.annotation) as csvfile:
+        if args.annotations:
+            with open(args.annotations) as csvfile:
                 annotation_data = list(csv.reader(csvfile, dialect=csv.excel, delimiter=','))
             if not args.data_in_columns:
                 # I need the annotation data opposite of the data, which should be drawn
@@ -133,7 +133,7 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
                         help='set title')
     parser.add_argument('--emphasize', '-e', nargs='+', metavar='LABEL', default=[],
                         help='emphasize Label by printing the line wider')
-    parser.add_argument('--annotation', '-a', metavar='FILE', default=None,
+    parser.add_argument('--annotations', '-a', metavar='FILE', default=None,
                         help='add annotations from file FILE')
 
     args = parser.parse_args(args)
