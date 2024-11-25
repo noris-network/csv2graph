@@ -40,7 +40,7 @@ usage line: csv2graph [-h] [--input FILE] [--output FILE]
                       [--start-at-zero] [--threshold T] [--smooth] [--stacked] 
                       [--data-in-columns] [--title TITLE] [--emphasize LABEL [LABEL ...]]
                       [--date-format FORMAT] [--x-label-separator SEPARATOR]
-                      [--annotation FILE]
+                      [--annotations FILE]
 ```
 ```
 usage pie: csv2graph --pie-chart [-h] [--input FILE] [--output FILE]
@@ -68,7 +68,7 @@ optional arguments:
                         set title
   --emphasize LABEL [LABEL ...], -e LABEL [LABEL ...]
                         emphasize Label by printing the line wider
-  --annotation FILE
+  --annotations FILE
                         add annotations from file FILE
 ```
 
@@ -164,7 +164,7 @@ annotations.csv:
 
 Command: 
 ```shell
-./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations.pdf --date-format "%Y-%m" --annotation examples/annotations.csv
+./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations.pdf --date-format "%Y-%m" --annotations examples/annotations.csv
 ```
 ![line chart with annotations](examples/line_annotations.png)
 
@@ -179,7 +179,7 @@ annotations_columns.csv:
 ```
 Command: 
 ```shell
-./csv2graph --title "Issues per Month" --data-in-columns -i examples/line_columns.csv -o examples/line_annotations_columns.pdf --date-format "%Y-%m" --annotation examples/annotations_columns.csv
+./csv2graph --title "Issues per Month" --data-in-columns -i examples/line_columns.csv -o examples/line_annotations_columns.pdf --date-format "%Y-%m" --annotations examples/annotations_columns.csv
 ```
 ![line chart with annotations data in columns](examples/line_annotations_columns.png)
 
@@ -187,9 +187,10 @@ Command:
 
 If your text overlaps, you can define an offset.
 
-The offset applies in x direction in the scale of the date.
+The first offset applies in x direction in the scale of the date.
 (The dates are converted to a float representing dates in the unix epoche, 
 [see matplotlib.date2num](https://matplotlib.org/stable/api/dates_api.html#matplotlib.dates.date2num)).
+The second offset applies in y direction in the scale of the data.
 
 annotations_overlap.csv:
 ```csv
@@ -199,20 +200,21 @@ will overlap","remove AI feature"
 ```
 Command: 
 ```shell
-./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations_overlap.pdf --date-format "%Y-%m" --annotation examples/annotations_overlap.csv
+./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations_overlap.pdf --date-format "%Y-%m" --annotations examples/annotations_overlap.csv
 ```
 ![line chart overlapping annotations](examples/line_annotations_overlap.png)
 
 annotations_offset.csv:
 ```csv
-2020-02,2020-03,2020-09,
-"release AI feature","This text
-will overlap","remove AI feature"
--15,,
+2020-02,2020-03,2020-05,2020-07,2020-09
+"release AI feature (offset x and y)","This text
+will overlap","offset x","offset y","remove AI feature"
+-20,,10,,
+5,,,20,
 ```
 Command: 
 ```shell
-./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations_offset.pdf --date-format "%Y-%m" --annotation examples/annotations_offset.csv
+./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations_offset.pdf --date-format "%Y-%m" --annotations examples/annotations_offset.csv
 ```
 ![line chart fixed overlapping annotations](examples/line_annotations_offset.png)
 

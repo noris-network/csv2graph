@@ -66,8 +66,8 @@ def main(args: Optional[List[str]] = None):
 
     else:
         annotation_data = None
-        if args.annotation:
-            with open(args.annotation) as csvfile:
+        if args.annotations:
+            with open(args.annotations) as csvfile:
                 annotation_data = list(csv.reader(csvfile, dialect=csv.excel, delimiter=','))
             if not args.data_in_columns:
                 # I need the annotation data opposite of the data, which should be drawn
@@ -133,7 +133,7 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
                         help='set title')
     parser.add_argument('--emphasize', '-e', nargs='+', metavar='LABEL', default=[],
                         help='emphasize Label by printing the line wider')
-    parser.add_argument('--annotation', '-a', metavar='FILE', default=None,
+    parser.add_argument('--annotations', '-a', metavar='FILE', default=None,
                         help='add annotations from file FILE')
 
     args = parser.parse_args(args)
@@ -322,24 +322,21 @@ def render_annotations(annotation_data: List[List[str]], date_format: str) -> No
     ax = plt.gca()
     color_iter = cycle(['red', 'blue', 'green', 'magenta'])
     y = plt.ylim()[1]
-    wrapper = TextWrapper(width=33, replace_whitespace=False)
+    wrapper = TextWrapper(width=45, replace_whitespace=False)
     for row in annotation_data:
-        if len(row) == 2:
-            date, text = row
-            offset = 0
-        else:
-            date, text, offset = row
-            try:
-                offset = float(offset)
-            except ValueError:
-                offset = 0
+        row.extend(['0', '0'])  # make sure there are at least 4 elements
+
+        date, text, offset_x, offset_y = row[:4]
+        offset_x = float(offset_x if offset_x else 0)
+        offset_y = float(offset_y if offset_y else 0)
+
         x = date2num(datetime.strptime(date, date_format))
         color = next(color_iter)
         ax.axvline(x=x, color=color, linestyle='--')
         text = wrapper.fill(text)
         ax.text(
-            x + offset,
-            y,
+            x + offset_x,
+            y + offset_y,
             text,
             color=color,
             ha='left',
