@@ -104,7 +104,9 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
     """
 
     parser = argparse.ArgumentParser(
-        description="generate a PDF graph from a CSV file")
+        description="generate a PDF graph from a CSV file. More information: "
+                    "https://github.com/noris-network/csv2graph/blob/main/README.md"
+    )
 
     parser.add_argument('--smooth', '-S', action='store_true',
                         help="smooth data")
