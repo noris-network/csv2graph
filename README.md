@@ -6,14 +6,14 @@ This script generates a PDF graph from a CSV file.
 ## Description
 
 This script generates a PDF graph from a CSV file.
-It hast two modes:
+It has two modes:
 1. line graph (default)
 2. pie chart
 
 By default, the input is read from stdin and printed to stdout.  
 You can also specify files with the `--input` and `--output` option.
 
-When you use the `--output` option you can specify a different output format from pdf (e.g. png).
+When you use the `--output` option you can specify a different output format from PDF (e.g. png).
 
 ## line graph
 Generate a line graph from the data.  
@@ -22,7 +22,7 @@ The first line must consist of dates
 according to the format specified in `--date-format` option (default: `%Y-%m`).
 The dates can contain a label.
 You can state the separator between the date and the label via `--x-label-separator`.
-The date can contain the seperator. The skript fill find the right spot to split.
+The date can contain the seperator. The script will find the right spot to split.
 
 ## pie chart
 Generate a pie chart from the data.
