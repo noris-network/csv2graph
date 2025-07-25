@@ -347,8 +347,6 @@ def render_annotations(annotation_data: List[List[str]], date_format: str) -> No
             ma='left',
         )
 
-    plt.tight_layout()
-
 def plot_line(
         x_label: str,
         y_labels: List[str],
@@ -426,6 +424,8 @@ def plot_line(
 
     if annotation_data:
         render_annotations(annotation_data, date_format)
+
+    plt.tight_layout()
 
 
 # Program body
