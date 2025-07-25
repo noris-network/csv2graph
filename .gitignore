@@ -1,3 +1,24 @@
 *~
 *.pyc
 *.pyo
+
+# build stuff
+_upload
+_version
+debian/.debhelper
+debian/debhelper-build-stamp
+debian/noris-csv2graph*
+debian/files
+
+# python stuff
+__pycache__/
+*.py[cod]
+*$py.class
+venv
+
+# ide
+.vs
+.idea
+
+# personal testing
+test*
