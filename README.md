@@ -1,10 +1,8 @@
 # csv2graph
-
 This script generates a PDF graph from a CSV file.
 
 
 ## Description
-
 This script generates a PDF graph from a CSV file.
 It has two modes:
 1. line graph (default)
@@ -50,7 +48,7 @@ usage pie: csv2graph --pie-chart [-h] [--input FILE] [--output FILE]
 optional arguments:
   -h, --help            show this help message and exit
   --smooth, -S          smooth data
-  --stacked, -s         stacks data on top of each other
+  --stacked, -s         stacks data on top of each other. (Don't use with --second-y-axis).
   --start-at-zero, -z   force y-axis to start at zero
   --threshold T, -T T   print a threshold in the chart
   --pie-chart, -p       create a pie chart
@@ -70,6 +68,10 @@ optional arguments:
                         emphasize Label by printing the line wider
   --annotations FILE
                         add annotations from file FILE
+  --second-y-axis [AXIS]
+                        Add second y-axis with different scaling.
+                        Specify the axis for the dataset as a sequence of '1' or '2'.
+                        (Don't use with --stacked.)
 ```
 
 ## examples
@@ -90,7 +92,6 @@ Command:
 ![line chart](examples/line.png)
 
 ### output png
-
 Command: 
 ```shell
 ./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line.png --date-format "%Y-%m"
@@ -98,7 +99,6 @@ Command:
 ![line chart](examples/line.png)
 
 ### data in columns
-
 If your data is column wise, you have to add the `--data-in-columns` option
 
 line_columns.csv:
@@ -125,7 +125,6 @@ Command:
 
 
 ### Stacked data
-
 You can stack the data.
 
 Command: 
@@ -149,7 +148,6 @@ Command:
 ![line chart with label](examples/line_with_label.png) 
 
 ### line with annotations
-
 You can add annotations to your graph.
 
 In addition to the data csv file, you need a csv file with the annotations.
@@ -169,7 +167,6 @@ Command:
 ![line chart with annotations](examples/line_annotations.png)
 
 #### data in columns
-
 If your data is column wise, the annotations also have to be column wise
 
 annotations_columns.csv:
@@ -184,7 +181,6 @@ Command:
 ![line chart with annotations data in columns](examples/line_annotations_columns.png)
 
 #### overlapping text
-
 If your text overlaps, you can define an offset.
 
 The first offset applies in x direction in the scale of the date.
@@ -217,6 +213,20 @@ Command:
 ./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_annotations_offset.pdf --date-format "%Y-%m" --annotations examples/annotations_offset.csv
 ```
 ![line chart fixed overlapping annotations](examples/line_annotations_offset.png)
+
+### 2 different y axis
+You can use 2 different y-axis with different scaling.
+
+If there are more than 2 datasets, you have to specify to which axis the dataset belongs,
+with a sequence of `1` or `2`.
+
+You can't use this together with `--stacked`.
+
+Command: 
+```shell
+./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line-second-y-axis.pdf --date-format "%Y-%m" --second-y-axis 112
+```
+![line chart second y axis](examples/line-second-y-axis.png)
 
 ### pie
 input-file:

@@ -9,6 +9,7 @@ i.e. the x-axis of the resulting graph will represent the time.
 """
 from __future__ import annotations
 
+import itertools
 import sys
 import csv
 import argparse
@@ -33,6 +34,7 @@ from scipy.signal import savgol_filter
 matplotlib.use('pdf')
 
 A4SIZE = (11.69, 8.27)
+MARKERS = itertools.cycle(['o', 's', 'D', '^', 'v', '*', 'x', '+', 'p', 'h'])
 
 
 class IllegalInputError(ValueError):
@@ -85,6 +87,7 @@ def main(args: Optional[List[str]] = None):
             args.threshold,
             args.emphasize,
             annotation_data,
+            args.second_y_axis,
         )
 
     if args.output:
@@ -111,7 +114,8 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
     parser.add_argument('--smooth', '-S', action='store_true',
                         help="smooth data")
     parser.add_argument('--stacked', '-s', action='store_true', dest='stacked_data',
-                        help="stacks data on top of each other")
+                        help="Stacks data on top of each other. "
+                             "(Don't use with --second-y-axis.)")
     parser.add_argument('--start-at-zero', '-z', action='store_true',
                         dest='start_at_zero',
                         help="force y-axis to start at zero")
@@ -137,8 +141,16 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
                         help='emphasize Label by printing the line wider')
     parser.add_argument('--annotations', '-a', metavar='FILE', default=None,
                         help='add annotations from file FILE')
+    parser.add_argument('--second-y-axis', nargs='?', dest='second_y_axis',
+                        const='12', default=None, metavar='AXIS',
+                        help="Add second y-axis with different scaling. "
+                             "Specify the axis for the dataset as a sequence of '1' or '2'. "
+                             "(Don't use with --stacked.)")
 
     args = parser.parse_args(args)
+
+    if args.second_y_axis is not None and args.stacked_data:
+        raise IllegalInputError('Either use --stacked or --second-y-axis')
 
     return args
 
@@ -171,6 +183,7 @@ def init_line(
         threshold: Optional[float],
         emphasize: List[str],
         annotation_data: List[List[str]] | None,
+        second_y_axis: str | None,
 ):
     """parse data and trigger plotting
 
@@ -185,6 +198,7 @@ def init_line(
         threshold: if not None, print a threshold line
         emphasize: emphasize these data lines by printing them wider
         annotation_data: annotations
+        second_y_axis: which axis to use for wich dataset
     """
     # check size
     if len(raw_data) < 2:
@@ -194,6 +208,10 @@ def init_line(
             raise IllegalInputError('The input has to have at least 2 columns!')
         if len(row) != len(raw_data[0]):
             raise IllegalInputError('The size for each row has to be the same!')
+    if second_y_axis is not None and len(second_y_axis) != len(raw_data) - 1:
+        raise IllegalInputError(
+            'You have to specify to which axis the datasets belong, when using --second-y-axis'
+        )
 
     x_label = raw_data[0][0]
     y_labels = [row[0] for row in raw_data[1:]]
@@ -213,6 +231,7 @@ def init_line(
         ticks,
         date_format,
         annotation_data,
+        second_y_axis,
     )
 
 
@@ -347,7 +366,6 @@ def render_annotations(annotation_data: List[List[str]], date_format: str) -> No
             ma='left',
         )
 
-    plt.tight_layout()
 
 def plot_line(
         x_label: str,
@@ -362,6 +380,7 @@ def plot_line(
         ticks: List[str],
         date_format: str,
         annotation_data: List[List[str]] | None,
+        second_y_axis: str | None,
 ) -> None:
     """Plot the data.
 
@@ -383,20 +402,76 @@ def plot_line(
         ticks: ticks for x-axis
         date_format: format for dates
         annotation_data: annotations
+        second_y_axis: which axis to use for wich dataset
     """
 
-    for i, dataset in enumerate(y):
-        label = y_labels[i]
-        width = 5 if label in emphasize else 1.5
+    if second_y_axis is not None:
+        ax1 = plt.gca()
+        ax2 = ax1.twinx()
+        ax1.tick_params(axis='y', labelcolor='blue')
+        ax2.tick_params(axis='y', labelcolor='red')
 
-        # plot() returns a list of lines, we unpack the first element by using ','
-        line, = plt.plot(x, dataset, label=label, lw=width)
+        for i, dataset in enumerate(y):
+            match second_y_axis[i]:
+                case '1':
+                    axis = ax1
+                    color = 'blue'
+                case '2':
+                    axis = ax2
+                    color = 'red'
+                case _:
+                    raise ValueError(
+                        f'--second-y-axis contains illegal character: {second_y_axis[i]}'
+                    )
 
-        if stacked:
-            if i == 0:
-                plt.fill_between(x, dataset, 0, color=getp(line, 'color'))
-            else:
-                plt.fill_between(x, dataset, y[i - 1], color=getp(line, 'color'))
+            width = 4 if y_labels[i] in emphasize else 1.5
+            marker_size = 10 if y_labels[i] in emphasize else 4
+            axis.plot(x, dataset, color=color, label=y_labels[i], lw=width,
+                      marker=next(MARKERS), markersize=marker_size)
+
+        # Make the drawing area only as big as the plotted data requires
+        plt.axis('tight')
+
+        if start_at_zero:
+            ax1.set_ylim(ymin=0)
+            ax2.set_ylim(ymin=0)
+
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+
+        # Combine and show the legend on ax1
+        plt.legend(
+            lines1 + lines2,
+            labels1 + labels2,
+            loc=0,
+            title=x_label,
+            prop={'size': 'small'}
+        )
+
+    else:
+        for i, dataset in enumerate(y):
+            label = y_labels[i]
+            width = 4 if label in emphasize else 1.5
+            marker_size = 10 if y_labels[i] in emphasize else 4
+
+            # plot() returns a list of lines, we unpack the first element by using ','
+            line, = plt.plot(x, dataset, label=label, lw=width, marker=next(MARKERS),
+                             markersize=marker_size)
+
+            if stacked:
+                if i == 0:
+                    plt.fill_between(x, dataset, 0, color=getp(line, 'color'))
+                else:
+                    plt.fill_between(x, dataset, y[i - 1], color=getp(line, 'color'))
+
+        # Make the drawing area only as big as the plotted data requires
+        plt.axis('tight')
+
+        if start_at_zero:
+            plt.gca().set_ylim(ymin=0)
+
+        # Add a legend at the best possible location with a font size of 11
+        plt.legend(loc=0, title=x_label, prop={'size': 'small'})
 
     # plot a horizontal Line if requested
     if threshold:
@@ -411,21 +486,13 @@ def plot_line(
     if ticks:
         plt.xticks(x, ticks)
 
-    # Make the drawing area only as big as the plotted data requires
-    plt.axis('tight')
-    # Start drawing area at zero if requested
-    if start_at_zero:
-        # plt.axis() returns a tuple, but we can´t manipulate a tuple...
-        ax = list(plt.axis())
-        ax[2] = -0
-        plt.axis(tuple(ax))
     # Rotate the x-axis label so that they won't overlap each other
     plt.gcf().autofmt_xdate()
-    # Add a legend at the best possible location with a font size of 11
-    plt.legend(loc=0, title=x_label, prop={'size': 'small'})
 
     if annotation_data:
         render_annotations(annotation_data, date_format)
+
+    plt.tight_layout()
 
 
 # Program body
