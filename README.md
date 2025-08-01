@@ -35,10 +35,11 @@ pip install -r requirements.txt
 ## usage & options
 ```
 usage line: csv2graph [-h] [--input FILE] [--output FILE]
-                      [--start-at-zero] [--threshold T] [--smooth] [--stacked] 
+                      [--start-at-zero] [--threshold T] [--smooth] [--stacked] [--disable-markers]
                       [--data-in-columns] [--title TITLE] [--emphasize LABEL [LABEL ...]]
                       [--date-format FORMAT] [--x-label-separator SEPARATOR]
                       [--annotations FILE]
+                      [--second-y-axis [AXIS]]
 ```
 ```
 usage pie: csv2graph --pie-chart [-h] [--input FILE] [--output FILE]
@@ -72,6 +73,8 @@ optional arguments:
                         Add second y-axis with different scaling.
                         Specify the axis for the dataset as a sequence of '1' or '2'.
                         (Don't use with --stacked.)
+  --disable-markers, --no-markers, -m
+                        disable markers on datapoints                  
 ```
 
 ## examples
@@ -97,6 +100,13 @@ Command:
 ./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line.png --date-format "%Y-%m"
 ```
 ![line chart](examples/line.png)
+
+### Disable markers
+Command: 
+```shell
+./csv2graph --title "Issues per Month" -i examples/line.csv -o examples/line_no_markers.png --date-format "%Y-%m" --disable-markers
+```
+![line chart no markers](examples/line_no_markers.png)
 
 ### data in columns
 If your data is column wise, you have to add the `--data-in-columns` option

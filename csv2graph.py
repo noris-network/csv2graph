@@ -88,6 +88,7 @@ def main(args: Optional[List[str]] = None):
             args.emphasize,
             annotation_data,
             args.second_y_axis,
+            args.markers,
         )
 
     if args.output:
@@ -141,11 +142,15 @@ def parse_arguments(args: Optional[List[str]]) -> argparse.Namespace:
                         help='emphasize Label by printing the line wider')
     parser.add_argument('--annotations', '-a', metavar='FILE', default=None,
                         help='add annotations from file FILE')
-    parser.add_argument('--second-y-axis', nargs='?', dest='second_y_axis',
+    parser.add_argument('--second-y-axis', '--separate-y-axes', '-y',
+                        nargs='?', dest='second_y_axis',
                         const='12', default=None, metavar='AXIS',
                         help="Add second y-axis with different scaling. "
                              "Specify the axis for the dataset as a sequence of '1' or '2'. "
                              "(Don't use with --stacked.)")
+    parser.add_argument('--disable-markers', '--no-markers', '-m',
+                        action='store_false', dest='markers',
+                        help="disable markers on datapoints")
 
     args = parser.parse_args(args)
 
@@ -184,6 +189,7 @@ def init_line(
         emphasize: List[str],
         annotation_data: List[List[str]] | None,
         second_y_axis: str | None,
+        markers: bool,
 ):
     """parse data and trigger plotting
 
@@ -199,6 +205,7 @@ def init_line(
         emphasize: emphasize these data lines by printing them wider
         annotation_data: annotations
         second_y_axis: which axis to use for wich dataset
+        markers: print markers on datapoints
     """
     # check size
     if len(raw_data) < 2:
@@ -232,6 +239,7 @@ def init_line(
         date_format,
         annotation_data,
         second_y_axis,
+        markers,
     )
 
 
@@ -381,6 +389,7 @@ def plot_line(
         date_format: str,
         annotation_data: List[List[str]] | None,
         second_y_axis: str | None,
+        markers: bool,
 ) -> None:
     """Plot the data.
 
@@ -403,6 +412,7 @@ def plot_line(
         date_format: format for dates
         annotation_data: annotations
         second_y_axis: which axis to use for wich dataset
+        markers: print markers on datapoints
     """
 
     if second_y_axis is not None:
@@ -425,9 +435,11 @@ def plot_line(
                     )
 
             width = 4 if y_labels[i] in emphasize else 1.5
-            marker_size = 10 if y_labels[i] in emphasize else 4
-            axis.plot(x, dataset, color=color, label=y_labels[i], lw=width,
-                      marker=next(MARKERS), markersize=marker_size)
+            marker_args = {}
+            if markers:
+                marker_args['marker_size'] = 10 if y_labels[i] in emphasize else 4
+                marker_args['marker'] = next(MARKERS)
+            axis.plot(x, dataset, color=color, label=y_labels[i], lw=width, **marker_args)
 
         # Make the drawing area only as big as the plotted data requires
         plt.axis('tight')
@@ -452,11 +464,13 @@ def plot_line(
         for i, dataset in enumerate(y):
             label = y_labels[i]
             width = 4 if label in emphasize else 1.5
-            marker_size = 10 if y_labels[i] in emphasize else 4
+            marker_args = {}
+            if markers:
+                marker_args['marker_size'] = 10 if y_labels[i] in emphasize else 4
+                marker_args['marker'] = next(MARKERS)
 
             # plot() returns a list of lines, we unpack the first element by using ','
-            line, = plt.plot(x, dataset, label=label, lw=width, marker=next(MARKERS),
-                             markersize=marker_size)
+            line, = plt.plot(x, dataset, label=label, lw=width, **marker_args)
 
             if stacked:
                 if i == 0:
