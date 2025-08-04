@@ -437,7 +437,7 @@ def plot_line(
             width = 4 if y_labels[i] in emphasize else 1.5
             marker_args = {}
             if markers:
-                marker_args['marker_size'] = 10 if y_labels[i] in emphasize else 4
+                marker_args['markersize'] = 10 if y_labels[i] in emphasize else 4
                 marker_args['marker'] = next(MARKERS)
             axis.plot(x, dataset, color=color, label=y_labels[i], lw=width, **marker_args)
 
@@ -466,7 +466,7 @@ def plot_line(
             width = 4 if label in emphasize else 1.5
             marker_args = {}
             if markers:
-                marker_args['marker_size'] = 10 if y_labels[i] in emphasize else 4
+                marker_args['markersize'] = 10 if y_labels[i] in emphasize else 4
                 marker_args['marker'] = next(MARKERS)
 
             # plot() returns a list of lines, we unpack the first element by using ','
