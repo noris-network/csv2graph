@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -x
+
 # run all examples from readme
 ./csv2graph.py --title "Issues per Month" -i examples/line.csv -o test/line.png --date-format "%Y-%m" --emphasize "own issues"
 ./csv2graph.py --title "Issues per Month" -i examples/line.csv -o examples/line_no_markers.png --date-format "%Y-%m" --disable-markers
@@ -12,6 +14,8 @@
 ./csv2graph.py --title "Issues per Month" -i examples/line.csv -o test/line_annotations_offset.png --date-format "%Y-%m" --annotations examples/annotations_offset.csv
 ./csv2graph.py --title "Issues per Month" -i examples/line.csv -o test/line-second-y-axis.png --date-format "%Y-%m" --second-y-axis 112
 ./csv2graph.py --title "Most time consuming issues" -i examples/pie.csv -o test/pie.png --pie
+
+set +x
 
 # Compare resulting files with files in examples
 all_match=true
@@ -29,7 +33,9 @@ for file in test/*.png; do
   fi
 done
 
-if ! $all_match; then
+if $all_match; then
+    echo "✅ All PNG files match."
+else
     echo "❌ Some PNG files differ or are missing."
     exit 1
 fi
