@@ -21,4 +21,8 @@ venv
 .idea
 
 # personal testing
-test*
+test*.py
+test/*.png
+test/*.pdf
+test/*.csv
+test/*.py

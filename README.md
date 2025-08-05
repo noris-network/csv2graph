@@ -28,7 +28,7 @@ Generate a pie chart from the data.
 ## installation
 You need to install these required packages: numpy, scipy, matplotlib  
 Or use the requirements.txt file:
-```
+```shell
 pip install -r requirements.txt
 ```
 
@@ -250,6 +250,6 @@ other,62
 ```
 Command: 
 ```shell
-./csv2graph --title "Most time consuming issues" -i pie.csv -o pie.pdf --pie
+./csv2graph --title "Most time consuming issues" -i examples/pie.csv -o examples/pie.pdf --pie
 ```
 ![pie chart](examples/pie.png)
