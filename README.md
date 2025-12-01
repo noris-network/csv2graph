@@ -253,3 +253,9 @@ Command:
 ./csv2graph --title "Most time consuming issues" -i examples/pie.csv -o examples/pie.pdf --pie
 ```
 ![pie chart](examples/pie.png)
+
+## Dependencies and Tests
+
+The tests generate the examples and compare the results to the existing ones.
+Unfortunately, the output depends on the matplotlib version.
+That is why we pin all dependencies to a specific version using [pip-tools](https://pypi.org/project/pip-tools/).
