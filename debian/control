@@ -1,7 +1,7 @@
 Source: noris-csv2graph
 Section: noris-intern/python
 Priority: optional
-Maintainer: Felix Dreissig <felix.dreissig@noris.net>
+Maintainer: noris network AG – Team CTE/NNIS <nnis-d@noris.de>
 Build-Depends: debhelper (>= 7), python3 (>=3.11), dh-python
 Standards-Version: 3.8.4
 X-Python-Version: >= 3.11
