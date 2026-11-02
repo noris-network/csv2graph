@@ -171,6 +171,7 @@ def init_pie(data: List[List[str]], title: str):
     # "unzip" data
     labels, sizes = zip(*data)
 
+    sizes = [float(wert) for wert in sizes]
     plt.pie(sizes, labels=labels, autopct='%1.1f%%', shadow=True, startangle=90)
     plt.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
 
